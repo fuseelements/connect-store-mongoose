@@ -1,0 +1,26 @@
+{
+  "name": "connect-store-mongoose",
+  "version": "0.1.0",
+  "description": "Is a persistent store for the connect session middleware that uses the Mongoose library to interface with a MongoDB database.",
+  "main": "index.js",
+  "devDependencies": {
+    "chai": "*",
+    "mocha": "*"
+  },
+  "scripts": {
+    "test": "ENV=test node_modules/.bin/mocha --recursive test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/fuseelements/connect-store-mongoose.git"
+  },
+  "keywords": [
+    "connect",
+    "session",
+    "mongodb",
+    "mongoose"
+  ],
+  "author": "Jon Buffington",
+  "license": "MIT",
+  "readmeFilename": "README.md"
+}
