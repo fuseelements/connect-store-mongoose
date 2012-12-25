@@ -22,13 +22,13 @@ module.exports = function(connect, mongoose) {
 
 
   function _fn(fn) {
-    return typeof(fn) === 'function' ? fn : function() {
-    };
+    return typeof(fn) === 'function' ? fn : function () {};
   }
 
+
   function _scheduleReaper(interval) {
-    setTimeout(function() {
-      Session.remove({x: {$lte: Date.now()}}, function(err) {
+    setTimeout(function () {
+      Session.remove({x: {$lte: Date.now()}}, function (err) {
         if (err) {
           util.error('Unable to reap sessions. ' + err.toString());
         }
@@ -39,39 +39,47 @@ module.exports = function(connect, mongoose) {
     }, interval);
   }
 
+
   function MongooseStore(options) {
     Store.call(this, options);
     _scheduleReaper(options.reapInterval || 5 * 60 * 1000);
   }
-
   util.inherits(MongooseStore, Store);
 
 
-  MongooseStore.prototype.get = function(sid, fn) {
-    fn = _fn(fn);
-
-    Session.findOne({_id: sid}, function(err, session) {
+  MongooseStore.prototype.get = function (sid, fn) {
+    Session.findOne({_id: sid}, function (err, session) {
       var sess;
       if (err || !session) {
         fn(err);
       }
       else {
-        sess = JSON.parse(session.d);
+        sess = session.d;
         fn(null, sess);
       }
     });
   };
 
 
-  MongooseStore.prototype.set = function(sid, session, fn) {
-    var doc = {
-          id: sid
-        };
+  MongooseStore.prototype.set = function (sid, sess, fn) {
+    var d = {},
+        doc;
 
-    if (session) {
+    if (sess) {
       try {
-        doc.x = session.cookie.expires || null;
-        doc.d = JSON.stringify(session);
+        Object.keys(sess).forEach(function (k) {
+          if (k === 'cookie') {
+            d.cookie = sess.cookie.toJSON();
+          }
+          else {
+            d[k] = sess[k];
+          }
+        });
+        doc = {
+          id: sid,
+          x: sess.cookie.expires || null,
+          d: d
+        };
         Session.update({_id: sid}, doc, {upsert: true}, function(err) {
           fn(err);
         });
@@ -86,19 +94,19 @@ module.exports = function(connect, mongoose) {
   };
 
 
-  MongooseStore.prototype.destroy = function(sid, fn) {
+  MongooseStore.prototype.destroy = function (sid, fn) {
+    fn = _fn(fn);
     Session.remove({s: sid}, fn);
   };
 
 
-  MongooseStore.prototype.clear = function(fn) {
+  MongooseStore.prototype.clear = function (fn) {
     fn = _fn(fn);
     Session.collection.drop(fn);
   };
 
 
-  MongooseStore.prototype.length = function(fn) {
-    fn = _fn(fn);
+  MongooseStore.prototype.length = function (fn) {
     Session.count(fn);
   };
 
