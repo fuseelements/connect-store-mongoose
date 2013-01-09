@@ -9,6 +9,10 @@ module.exports = function(connect, mongoose) {
       util = require('util'),
       Schema = mongoose.Schema,
       SessionSchema = new mongoose.Schema({
+        s: {
+          type: String,
+          unique: true
+        },
         d: {
           type: Schema.Types.Mixed,
           required: true
@@ -48,50 +52,53 @@ module.exports = function(connect, mongoose) {
 
 
   MongooseStore.prototype.get = function (sid, fn) {
-    try {
-      Session.findOne({_id: sid}, function (err, session) {
-        var sess;
-        if (err || !session) {
-          fn(err || new Error('Unable to get matching session.'));
-        }
-        else {
-          sess = session.d;
-          fn(null, sess);
-        }
-      });
-    }
-    catch (e) {
-      fn(e);
-    }
+    Session.findOne({s: sid}, function (err, session) {
+      var sess;
+      if (err || !session) {
+        fn(err);
+      }
+      else {
+        sess = session.d;
+        fn(null, sess);
+      }
+    });
   };
 
 
   MongooseStore.prototype.set = function (sid, sess, fn) {
-    var d = {},
-        doc;
+    var d = {};
 
     if (sess) {
-      try {
-        Object.keys(sess).forEach(function (k) {
-          if (k === 'cookie') {
-            d.cookie = sess.cookie.toJSON();
+      Object.keys(sess).forEach(function (k) {
+        if (k === 'cookie') {
+          d.cookie = sess.cookie.toJSON();
+        }
+        else {
+          d[k] = sess[k];
+        }
+      });
+
+      Session.findOne({s: sid}, function (err, session) {
+        if (err) {
+          fn(err);
+        }
+        else {
+          if (session) {
+            session.x = sess.cookie.expires || null;
+            session.d = d;
           }
           else {
-            d[k] = sess[k];
+            session = new Session({
+              s: sid,
+              x: sess.cookie.expires || null,
+              d: d
+            });
           }
-        });
-        doc = {
-          id: sid,
-          x: sess.cookie.expires || null,
-          d: d
-        };
-        Session.update({_id: sid}, doc, {upsert: true}, function(err) {
-          fn(err);
-        });
-      }
-      catch (e) {
-        fn(e);
-      }
+          session.save(function (err) {
+            fn(err);
+          });
+        }
+      });
     }
     else {
       this.destroy(sid, fn);
