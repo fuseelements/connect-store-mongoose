@@ -48,16 +48,21 @@ module.exports = function(connect, mongoose) {
 
 
   MongooseStore.prototype.get = function (sid, fn) {
-    Session.findOne({_id: sid}, function (err, session) {
-      var sess;
-      if (err || !session) {
-        fn(err);
-      }
-      else {
-        sess = session.d;
-        fn(null, sess);
-      }
-    });
+    try {
+      Session.findOne({_id: sid}, function (err, session) {
+        var sess;
+        if (err || !session) {
+          fn(err || new Error('Unable to get matching session.'));
+        }
+        else {
+          sess = session.d;
+          fn(null, sess);
+        }
+      });
+    }
+    catch (e) {
+      fn(e);
+    }
   };
 
 
